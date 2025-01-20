@@ -118,8 +118,21 @@ async function installNodeModuleInTempDirAndCopyToCurrent(packageName, toCopy) {
 }
 
 (async () => {
-  fs.mkdirSync("out/node_modules", { recursive: true });
-  fs.mkdirSync("bin/node_modules", { recursive: true });
+  // Informs of where to look for node_sqlite3.node https://www.npmjs.com/package/bindings#:~:text=The%20searching%20for,file%20is%20found
+  // This is only needed for our `pkg` command at build time
+  fs.writeFileSync(
+    "out/package.json",
+    JSON.stringify(
+      {
+        name: "binary",
+        version: "1.0.0",
+        author: "Continue Dev, Inc",
+        license: "Apache-2.0",
+      },
+      undefined,
+      2,
+    ),
+  );
 
   console.log("[info] Downloading prebuilt lancedb...");
   for (const target of targets) {
@@ -196,6 +209,8 @@ async function installNodeModuleInTempDirAndCopyToCurrent(packageName, toCopy) {
     format: "cjs",
     platform: "node",
     sourcemap: true,
+    minify: true,
+    treeShaking: true,
     loader: {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       ".node": "file",
@@ -239,21 +254,6 @@ async function installNodeModuleInTempDirAndCopyToCurrent(packageName, toCopy) {
     execCmdSync(`curl -L -o ${targetDir}/build.tar.gz ${downloadUrl}`);
     execCmdSync(`cd ${targetDir} && tar -xvzf build.tar.gz`);
 
-    // Informs of where to look for node_sqlite3.node https://www.npmjs.com/package/bindings#:~:text=The%20searching%20for,file%20is%20found
-    fs.writeFileSync(
-      `${targetDir}/package.json`,
-      JSON.stringify(
-        {
-          name: "binary",
-          version: "1.0.0",
-          author: "Continue Dev, Inc",
-          license: "Apache-2.0",
-        },
-        undefined,
-        2,
-      ),
-    );
-
     // Copy to build directory for testing
     try {
       const [platform, arch] = target.split("-");
@@ -270,44 +270,28 @@ async function installNodeModuleInTempDirAndCopyToCurrent(packageName, toCopy) {
 
     fs.unlinkSync(`${targetDir}/build.tar.gz`);
 
-    // Download and unzip prebuilt esbuild binary for the target
-    console.log(`[info] Downloading esbuild for ${target}...`);
-    // Version is pinned to 0.19.11 in package.json to make sure that they match
-    execCmdSync(
-      `curl -o ${targetDir}/esbuild.tgz https://registry.npmjs.org/@esbuild/${target}/-/${target}-0.19.11.tgz`,
-    );
-    execCmdSync(`tar -xzvf ${targetDir}/esbuild.tgz -C ${targetDir}`);
-    if (target.startsWith("win32")) {
-      fs.cpSync(`${targetDir}/package/esbuild.exe`, `${targetDir}/esbuild.exe`);
-    } else {
-      fs.cpSync(`${targetDir}/package/bin/esbuild`, `${targetDir}/esbuild`);
-    }
-    fs.rmSync(`${targetDir}/esbuild.tgz`);
-    fs.rmSync(`${targetDir}/package`, {
-      force: true,
-      recursive: true,
-    });
-
     // copy @lancedb to bin folders
     console.log("[info] Copying @lancedb files to bin");
     fs.copyFileSync(
       `node_modules/${targetToLanceDb[target]}/index.node`,
       `${targetDir}/index.node`,
     );
+
+    // Informs the `continue-binary` of where to look for node_sqlite3.node
+    // https://www.npmjs.com/package/bindings#:~:text=The%20searching%20for,file%20is%20found
+    // fs.writeFileSync(`${targetDir}/package.json`, "");
   }
-  // execCmdSync(
-  //   `npx pkg out/index.js --target node18-darwin-arm64 --no-bytecode --public-packages "*" --public -o bin/pkg`
-  // );
+
+  // Cleanup - this is needed when running locally
+  fs.rmSync("out/package.json");
 
   const pathsToVerify = [];
-  for (target of targets) {
+  for (const target of targets) {
     const exe = target.startsWith("win") ? ".exe" : "";
     const targetDir = `bin/${target}`;
     pathsToVerify.push(
       `${targetDir}/continue-binary${exe}`,
-      `${targetDir}/esbuild${exe}`,
       `${targetDir}/index.node`, // @lancedb
-      "package.json", // Informs of where to look for node_sqlite3.node https://www.npmjs.com/package/bindings#:~:text=The%20searching%20for,file%20is%20found
       `${targetDir}/build/Release/node_sqlite3.node`,
     );
   }

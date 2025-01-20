@@ -1,6 +1,11 @@
 import { ConfigJson } from "@continuedev/config-types";
+import { ClientConfigYaml } from "@continuedev/config-yaml/dist/schemas/index.js";
 import fetch, { RequestInit, Response } from "node-fetch";
+
 import { ModelDescription } from "../index.js";
+
+import { ConfigResult } from "@continuedev/config-yaml";
+import { controlPlaneEnv } from "./env.js";
 
 export interface ControlPlaneSessionInfo {
   accessToken: string;
@@ -18,13 +23,11 @@ export interface ControlPlaneWorkspace {
 
 export interface ControlPlaneModelDescription extends ModelDescription {}
 
-export const CONTROL_PLANE_URL =
-  process.env.CONTROL_PLANE_ENV === "local"
-    ? "http://localhost:3001/"
-    : "https://control-plane-api-service-i3dqylpbqa-uc.a.run.app/";
+export const TRIAL_PROXY_URL =
+  "https://proxy-server-blue-l6vsfbzhba-uw.a.run.app";
 
 export class ControlPlaneClient {
-  private static URL = CONTROL_PLANE_URL;
+  private static URL = controlPlaneEnv.CONTROL_PLANE_URL;
   private static ACCESS_TOKEN_VALID_FOR_MS = 1000 * 60 * 5; // 5 minutes
 
   private lastAccessTokenRefresh = 0;
@@ -84,6 +87,29 @@ export class ControlPlaneClient {
     }
   }
 
+  public async listAssistants(): Promise<
+    {
+      configResult: ConfigResult<ClientConfigYaml>;
+      ownerSlug: string;
+      packageSlug: string;
+      iconUrl: string;
+    }[]
+  > {
+    const userId = await this.userId;
+    if (!userId) {
+      return [];
+    }
+
+    try {
+      const resp = await this.request("ide/list-assistants", {
+        method: "GET",
+      });
+      return (await resp.json()) as any;
+    } catch (e) {
+      return [];
+    }
+  }
+
   async getSettingsForWorkspace(workspaceId: string): Promise<ConfigJson> {
     const userId = await this.userId;
     if (!userId) {
@@ -94,5 +120,22 @@ export class ControlPlaneClient {
       method: "GET",
     });
     return ((await resp.json()) as any).settings;
+  }
+
+  async syncSecrets(secretNames: string[]): Promise<Record<string, string>> {
+    const userId = await this.userId;
+    if (!userId) {
+      throw new Error("No user id");
+    }
+
+    try {
+      const resp = await this.request("ide/sync-secrets", {
+        method: "POST",
+        body: JSON.stringify({ secretNames }),
+      });
+      return (await resp.json()) as any;
+    } catch (e) {
+      return {};
+    }
   }
 }

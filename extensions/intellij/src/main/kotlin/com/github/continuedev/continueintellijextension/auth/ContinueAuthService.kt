@@ -1,5 +1,6 @@
 package com.github.continuedev.continueintellijextension.auth
 
+import com.github.continuedev.continueintellijextension.services.ContinueExtensionSettings
 import com.github.continuedev.continueintellijextension.services.ContinuePluginService
 import com.google.gson.Gson
 import com.intellij.credentialStore.Credentials
@@ -10,6 +11,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes
+import kotlinx.coroutines.CoroutineScope
 import java.awt.Desktop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,6 +24,8 @@ import java.net.URL
 
 @Service
 class ContinueAuthService {
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+
     companion object {
         fun getInstance(): ContinueAuthService = service<ContinueAuthService>()
         private const val CREDENTIALS_USER = "ContinueAuthUser"
@@ -34,7 +38,10 @@ class ContinueAuthService {
     }
 
     init {
-        setupRefreshTokenInterval()
+        val settings = service<ContinueExtensionSettings>()
+        if (settings.continueState.enableContinueTeamsBeta) {
+            setupRefreshTokenInterval()
+        }
     }
 
     fun startAuthFlow(project: Project) {
@@ -61,7 +68,7 @@ class ContinueAuthService {
 
     private fun updateRefreshToken(token: String) {
         // Launch a coroutine to call the suspend function
-        kotlinx.coroutines.GlobalScope.launch {
+        coroutineScope.launch {
             try {
                 val response = refreshToken(token)
                 val accessToken = response["accessToken"] as? String
@@ -78,7 +85,8 @@ class ContinueAuthService {
                 setControlPlaneSessionInfo(sessionInfo)
 
                 // Notify listeners
-                ApplicationManager.getApplication().messageBus.syncPublisher(AuthListener.TOPIC).handleUpdatedSessionInfo(sessionInfo)
+                ApplicationManager.getApplication().messageBus.syncPublisher(AuthListener.TOPIC)
+                    .handleUpdatedSessionInfo(sessionInfo)
 
             } catch (e: Exception) {
                 // Handle any exceptions
@@ -89,14 +97,14 @@ class ContinueAuthService {
 
     private fun setupRefreshTokenInterval() {
         // Launch a coroutine to refresh the token every 30 minutes
-        kotlinx.coroutines.GlobalScope.launch {
+        coroutineScope.launch {
             while (true) {
                 val refreshToken = getRefreshToken()
                 if (refreshToken != null) {
                     updateRefreshToken(refreshToken)
                 }
 
-                kotlinx.coroutines.delay(30 * 60 * 1000)
+                kotlinx.coroutines.delay(15 * 60 * 1000) // 15 minutes in milliseconds
             }
         }
     }
@@ -136,19 +144,30 @@ class ContinueAuthService {
     }
 
     private fun retrieveSecret(key: String): String? {
-        val attributes = createCredentialAttributes(key, CREDENTIALS_USER)
-        val passwordSafe: PasswordSafe = PasswordSafe.instance
+        return try {
+            val attributes = createCredentialAttributes(key, CREDENTIALS_USER)
+            val passwordSafe: PasswordSafe = PasswordSafe.instance
 
-        val credentials: Credentials? = passwordSafe[attributes!!]
-        return credentials?.getPasswordAsString()
+            val credentials: Credentials? = passwordSafe[attributes!!]
+            credentials?.getPasswordAsString()
+        } catch (e: Exception) {
+            // Log the exception or handle it as needed
+            println("Error retrieving secret for key $key: ${e.message}")
+            null
+        }
     }
 
     private fun storeSecret(key: String, secret: String) {
-        val attributes = createCredentialAttributes(key, CREDENTIALS_USER)
-        val passwordSafe: PasswordSafe = PasswordSafe.instance
+        try {
+            val attributes = createCredentialAttributes(key, CREDENTIALS_USER)
+            val passwordSafe: PasswordSafe = PasswordSafe.instance
 
-        val credentials = Credentials(CREDENTIALS_USER, secret)
-        passwordSafe.set(attributes!!, credentials)
+            val credentials = Credentials(CREDENTIALS_USER, secret)
+            passwordSafe.set(attributes!!, credentials)
+        } catch (e: Exception) {
+            // Log the exception or handle it as needed
+            println("Error storing secret for key $key: ${e.message}")
+        }
     }
 
     private fun getAccessToken(): String? {

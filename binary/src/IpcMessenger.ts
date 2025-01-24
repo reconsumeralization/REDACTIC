@@ -1,5 +1,5 @@
 import { IProtocol } from "core/protocol/index.js";
-import { IMessenger, type Message } from "core/util/messenger";
+import { IMessenger, type Message } from "core/protocol/messenger";
 import { ChildProcessWithoutNullStreams } from "node:child_process";
 import * as fs from "node:fs";
 import net from "node:net";
@@ -33,14 +33,46 @@ class IPCMessengerBase<
             response &&
             typeof response[Symbol.asyncIterator] === "function"
           ) {
-            for await (const update of response) {
-              this.send(msg.messageType, update, msg.messageId);
+            let next = await response.next();
+            while (!next.done) {
+              this.send(
+                msg.messageType,
+                {
+                  done: false,
+                  content: next.value,
+                  status: "success",
+                },
+                msg.messageId,
+              );
+              next = await response.next();
             }
-            this.send(msg.messageType, { done: true }, msg.messageId);
+            this.send(
+              msg.messageType,
+              {
+                done: true,
+                content: next.value,
+                status: "success",
+              },
+              msg.messageId,
+            );
           } else {
-            this.send(msg.messageType, response, msg.messageId);
+            this.send(
+              msg.messageType,
+              {
+                done: true,
+                content: response,
+                status: "success",
+              },
+              msg.messageId,
+            );
           }
         } catch (e: any) {
+          this.send(
+            msg.messageType,
+            { done: true, error: e.message, status: "error" },
+            msg.messageId,
+          );
+
           console.warn(`Error running handler for "${msg.messageType}": `, e);
           this._onErrorHandlers.forEach((handler) => {
             handler(e);
@@ -62,6 +94,7 @@ class IPCMessengerBase<
   }
 
   private _unfinishedLine: string | undefined = undefined;
+
   protected _handleData(data: Buffer) {
     const d = data.toString();
     const lines = d.split(/\r\n/).filter((line) => line.trim() !== "");
@@ -169,6 +202,7 @@ export class IpcMessenger<
       process.exit(1);
     });
   }
+
   _sendMsg(msg: Message) {
     const d = JSON.stringify(msg);
     // console.log("[info] Sending message: ", d);

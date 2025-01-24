@@ -1,13 +1,13 @@
 import { Listbox, Transition } from "@headlessui/react";
 import {
   ChevronUpDownIcon,
-  Cog6ToothIcon,
-  UserCircleIcon,
+  UserCircleIcon as UserCircleIconOutline,
 } from "@heroicons/react/24/outline";
+import { UserCircleIcon as UserCircleIconSolid } from "@heroicons/react/24/solid";
 import { ProfileDescription } from "core/config/ConfigHandler";
 import { Fragment, useContext, useEffect, useState } from "react";
 import ReactDOM from "react-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import styled from "styled-components";
 import {
   defaultBorderRadius,
@@ -18,13 +18,13 @@ import {
   vscListActiveBackground,
   vscListActiveForeground,
 } from ".";
+import { useAuth } from "../context/Auth";
 import { IdeMessengerContext } from "../context/IdeMessenger";
-import { useAuth } from "../hooks/useAuth";
 import { useWebviewListener } from "../hooks/useWebviewListener";
+import { useAppSelector } from "../redux/hooks";
 import { setLastControlServerBetaEnabledStatus } from "../redux/slices/miscSlice";
-import { RootState } from "../redux/store";
 import { getFontSize } from "../util";
-import HeaderButtonWithText from "./HeaderButtonWithText";
+import HeaderButtonWithToolTip from "./gui/HeaderButtonWithToolTip";
 
 const StyledListbox = styled(Listbox)`
   background-color: ${vscBackground};
@@ -116,25 +116,25 @@ function ListBoxOption({
         setHovered(false);
       }}
     >
-      <div className="flex items-center justify-between gap-3 h-5 relative">
+      <div className="relative flex h-5 items-center justify-between gap-3">
         {option.title}
       </div>
     </StyledListboxOption>
   );
 }
 
-function ProfileSwitcher(props: {}) {
+function ProfileSwitcher() {
   const ideMessenger = useContext(IdeMessengerContext);
   const { session, logout, login } = useAuth();
   const [profiles, setProfiles] = useState<ProfileDescription[]>([]);
 
   const dispatch = useDispatch();
-  const lastControlServerBetaEnabledStatus = useSelector(
-    (state: RootState) => state.misc.lastControlServerBetaEnabledStatus,
+  const lastControlServerBetaEnabledStatus = useAppSelector(
+    (state) => state.misc.lastControlServerBetaEnabledStatus,
   );
 
-  const selectedProfileId = useSelector(
-    (store: RootState) => store.state.selectedProfileId,
+  const selectedProfileId = useAppSelector(
+    (store) => store.session.selectedProfileId,
   );
 
   const [controlServerBetaEnabled, setControlServerBetaEnabled] =
@@ -142,17 +142,25 @@ function ProfileSwitcher(props: {}) {
 
   useEffect(() => {
     ideMessenger.ide.getIdeSettings().then(({ enableControlServerBeta }) => {
-      const shouldShowPopup =
-        !lastControlServerBetaEnabledStatus && enableControlServerBeta;
-
-      if (shouldShowPopup) {
-        ideMessenger.ide.showToast("info", "Continue for Teams enabled");
-      }
-
       setControlServerBetaEnabled(enableControlServerBeta);
       dispatch(setLastControlServerBetaEnabledStatus(enableControlServerBeta));
+
+      const shouldShowPopup =
+        !lastControlServerBetaEnabledStatus && enableControlServerBeta;
     });
   }, []);
+
+  useWebviewListener(
+    "didChangeIdeSettings",
+    async (msg) => {
+      const { settings } = msg;
+      setControlServerBetaEnabled(settings.enableControlServerBeta);
+      dispatch(
+        setLastControlServerBetaEnabledStatus(settings.enableControlServerBeta),
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     ideMessenger
@@ -182,12 +190,12 @@ function ProfileSwitcher(props: {}) {
         <StyledListbox
           value={"GPT-4"}
           onChange={(id: string) => {
-            ideMessenger.request("didChangeSelectedProfile", { id });
+            ideMessenger.post("didChangeSelectedProfile", { id });
           }}
         >
           <div className="relative">
             <StyledListboxButton>
-              <div>{selectedProfile()?.title}</div>
+              <span className="truncate">{selectedProfile()?.title}</span>
               <div className="pointer-events-none flex items-center">
                 <ChevronUpDownIcon
                   className="h-4 w-4 text-gray-400"
@@ -234,44 +242,28 @@ function ProfileSwitcher(props: {}) {
         </StyledListbox>
       )}
 
-      {/* Settings button (either opens config.json or /settings page in control plane) */}
-      <HeaderButtonWithText
-        tooltipPlacement="top-end"
-        onClick={() => {
-          if (selectedProfileId === "local") {
-            ideMessenger.post("openConfigJson", undefined);
-          } else {
-            ideMessenger.post(
-              "openUrl",
-              `http://app.continue.dev/workspaces/${selectedProfileId}/config`,
-            );
-          }
-        }}
-        text="Configure Continue"
-      >
-        <Cog6ToothIcon width="1.4em" height="1.4em" />
-      </HeaderButtonWithText>
-
-      {/* Only show login if beta explicitly enabled */}
-      {controlServerBetaEnabled && (
-        <HeaderButtonWithText
-          tooltipPlacement="top-end"
-          text={
-            session?.account
-              ? `Logged in as ${session.account.label}`
-              : "Click to login to Continue"
-          }
-          onClick={() => {
-            if (session?.account) {
-              logout();
-            } else {
-              login();
+      {controlServerBetaEnabled &&
+        (session?.account ? (
+          <HeaderButtonWithToolTip
+            tooltipPlacement="top-end"
+            text={
+              session.account.label === ""
+                ? "Logged in"
+                : `Logged in as ${session.account.label}`
             }
-          }}
-        >
-          <UserCircleIcon width="1.4em" height="1.4em" />
-        </HeaderButtonWithText>
-      )}
+            onClick={logout}
+          >
+            <UserCircleIconSolid className="h-4 w-4" />
+          </HeaderButtonWithToolTip>
+        ) : (
+          <HeaderButtonWithToolTip
+            tooltipPlacement="top-end"
+            text="Click to login to Continue"
+            onClick={login}
+          >
+            <UserCircleIconOutline className="h-4 w-4" />
+          </HeaderButtonWithToolTip>
+        ))}
     </>
   );
 }

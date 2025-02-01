@@ -7,22 +7,22 @@ sidebar_position: 4
 
 A "reranking model" is trained to take two pieces of text (often a user question and a document) and return a relevancy score between 0 and 1, estimating how useful the document will be in answering the question. Rerankers are typically much smaller than LLMs, and will be extremely fast and cheap in comparison.
 
-In Continue, reranking is used by [@codebase](../deep-dives/codebase.md) in order to select the most relevant code snippets after vector search.
+In Continue, reranking is used by [@Codebase](../deep-dives/codebase.md) in order to select the most relevant code snippets after vector search.
 
 ## Recommended reranking models
 
-If you have the ability to use any model, we recommend `rerank-1` by Voyage AI, which is listed below along with the rest of the options for rerankers.
+If you have the ability to use any model, we recommend `rerank-2` by Voyage AI, which is listed below along with the rest of the options for rerankers.
 
 ### Voyage AI
 
-Voyage AI offers the best reranking model for code with their `rerank-1` model. After obtaining an API key from [here](https://www.voyageai.com/), you can configure like this:
+Voyage AI offers the best reranking model for code with their `rerank-2` model. After obtaining an API key from [here](https://www.voyageai.com/), you can configure like this:
 
 ```json title="config.json"
 {
   "reranker": {
     "name": "voyage",
     "params": {
-      "model": "rerank-1",
+      "model": "rerank-2",
       "apiKey": "<VOYAGE_API_KEY>"
     }
   }
@@ -72,6 +72,7 @@ The `"modelTitle"` field must match one of the models in your "models" array in 
     "name": "huggingface-tei",
     "params": {
       "apiBase": "http://localhost:8080",
+      "apiKey": "<TEI_API_KEY>",
       "truncate": true,
       "truncation_direction": "Right"
     }

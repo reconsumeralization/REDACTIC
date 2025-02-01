@@ -6,164 +6,487 @@ keywords: [context, "@", provider, LLM]
 
 Context Providers allow you to type '@' and see a dropdown of content that can all be fed to the LLM as context. Every context provider is a plugin, which means if you want to reference some source of information that you don't see here, you can request (or build!) a new context provider.
 
-As an example, say you are working on solving a new GitHub Issue. You type '@issue' and select the one you are working on. Continue can now see the issue title and contents. You also know that the issue is related to the files 'readme.md' and 'helloNested.py', so you type '@readme' and '@hello' to find and select them. Now these 3 "Context Items" are displayed inline with the rest of your input.
+As an example, say you are working on solving a new GitHub Issue. You type '@Issue' and select the one you are working on. Continue can now see the issue title and contents. You also know that the issue is related to the files 'readme.md' and 'helloNested.py', so you type '@readme' and '@hello' to find and select them. Now these 3 "Context Items" are displayed inline with the rest of your input.
 
 ![Context Items](/img/context-provider-example.png)
 
 ## Built-in Context Providers
 
-To use any of the built-in context providers, open `~/.continue/config.json` and add it to the `contextProviders` list.
+To use any of the built-in context providers, open `config.json` and add it to the `contextProviders` list.
 
-### Files
+### `@File`
 
-Type '@file' to reference any file in your current workspace.
+Reference any file in your current workspace.
 
-```json
-{ "name": "file" }
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "file"
+    }
+  ]
+}
 ```
 
-### Code
+### `@Code`
 
-Type '@code' to reference specific functions or classes from throughout your project.
+Reference specific functions or classes from throughout your project.
 
-```json
-{ "name": "code" }
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "code"
+    }
+  ]
+}
 ```
 
-### Git Diff
+### `@Git Diff`
 
-Type '@diff' to reference all of the changes you've made to your current branch. This is useful if you want to summarize what you've done or ask for a general review of your work before committing.
+Reference all of the changes you've made to your current branch. This is useful if you want to summarize what you've done or ask for a general review of your work before committing.
 
-```json
-{ "name": "diff" }
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "diff"
+    }
+  ]
+}
 ```
 
-### Terminal
+### `@Current File`
 
-Type '@terminal' to reference the contents of your IDE's terminal.
+Reference the currently open file.
 
-```json
-{ "name": "terminal" }
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "currentFile"
+    }
+  ]
+}
 ```
 
-### Documentation
+### `@Terminal`
 
-Type `@docs` to index and retrieve snippets from any documentation site.
+Reference the last command you ran in your IDE's terminal and its output.
 
-```json
-{ "name": "docs" }
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "terminal"
+    }
+  ]
+}
 ```
 
-To learn more, visit `[@docs](customize/deep-dives/docs.md)`.
+### `@Docs`
 
-### Open Files
+Reference the contents from any documentation site.
 
-Type '@open' to reference the contents of all of your open files. Set `onlyPinned` to `true` to only reference pinned files.
-
-```json
-{ "name": "open", "params": { "onlyPinned": true } }
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "docs"
+    }
+  ]
+}
 ```
 
-### Codebase Retrieval
+Note that this will only enable the `@Docs` context provider.
 
-Type '@codebase' to automatically retrieve the most relevant snippets from your codebase. Read more about indexing and retrieval [here](customize/deep-dives/codebase.md).
+To use it, you need to add a documentation site to your `config.json`. See the [docs](../customize/deep-dives/docs.md) page for more information.
 
-```json
-{ "name": "codebase" }
+### `@Open`
+
+Reference the contents of all of your open files. Set `onlyPinned` to `true` to only reference pinned files.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "open",
+      "params": {
+        "onlyPinned": true
+      }
+    }
+  ]
+}
 ```
 
-### Folders
+### `@Web`
 
-Type '@folder' to use the same retrieval mechanism as '@codebase', but only on a single folder.
+Reference relevant pages from across the web, automatically determined from your input.
 
-```json
-{ "name": "folder" }
+Optionally, set "n" to limit the number of results returned (default 6).
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "web",
+      "params": {
+        "n": 5
+      }
+    }
+  ]
+}
 ```
 
-### Exact Search
+### `@Codebase`
 
-Type '@search' to reference the results of codebase search, just like the results you would get from VS Code search. This context provider is powered by [ripgrep](https://github.com/BurntSushi/ripgrep).
+Reference the most relevant snippets from your codebase.
 
-```json
-{ "name": "search" }
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "codebase"
+    }
+  ]
+}
 ```
 
-### URL
+Read more about indexing and retrieval [here](../customize/deep-dives/codebase.md).
 
-Type '@url' and input a URL, then Continue will convert it to a markdown document to pass to the model.
+### `@Folder`
 
-```json
-{ "name": "url" }
+Uses the same retrieval mechanism as `@Codebase`, but only on a single folder.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "folder"
+    }
+  ]
+}
 ```
 
-### File Tree
+### `@Search`
 
-Type '@tree' to reference the structure of your current workspace. The LLM will be able to see the nested directory structure of your project.
+Reference the results of codebase search, just like the results you would get from VS Code search.
 
-```json
-{ "name": "tree" }
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "search"
+    }
+  ]
+}
 ```
 
-### Google
+This context provider is powered by [ripgrep](https://github.com/BurntSushi/ripgrep).
 
-Type '@google' to reference the results of a Google search. For example, type "@google python tutorial" if you want to search and discuss ways of learning Python.
+### `@Url`
+
+Reference the markdown converted contents of a given URL.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "url"
+    }
+  ]
+}
+```
+
+### `@Clipboard`
+
+Reference recent clipboard items
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "clipboard"
+    }
+  ]
+}
+```
+
+### `@Tree`
+
+Reference the structure of your current workspace.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "tree"
+    }
+  ]
+}
+```
+
+### `@Problems`
+
+Get Problems from the current file.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "problems"
+    }
+  ]
+}
+```
+
+### `@Debugger`
+
+Reference the contents of the local variables in the debugger. Currently only available in VS Code.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "debugger",
+      "params": {
+        "stackDepth": 3
+      }
+    }
+  ]
+}
+```
+
+Uses the top _n_ levels (defaulting to 3) of the call stack for that thread.
+
+### `@Repository Map`
+
+Reference the outline of your codebase. By default, signatures are included along with file in the repo map.
+
+`includeSignatures` params can be set to false to exclude signatures. This could be necessary for large codebases and/or to reduce context size significantly. Signatures will not be included if indexing is disabled.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "repo-map",
+      "params": {
+        "includeSignatures": false // default true
+      }
+    }
+  ]
+}
+```
+
+Provides a list of files and the call signatures of top-level classes, functions, and methods in those files. This helps the model better understand how a particular piece of code relates to the rest of the codebase.
+
+In the submenu that appears, you can select either `Entire codebase`, or specify a subfolder to generate the repostiory map from.
+
+This context provider is inpsired by [Aider's repository map](https://aider.chat/2023/10/22/repomap.html).
+
+### `@Operating System`
+
+Reference the architecture and platform of your current operating system.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "os"
+    }
+  ]
+}
+```
+
+### Model Context Protocol
+
+The [Model Context Protocol](https://modelcontextprotocol.io/introduction) is a standard proposed by Anthropic to unify prompts, context, and tool use. Continue supports any MCP server with the MCP context provider. Read their [quickstart](https://modelcontextprotocol.io/quickstart) to learn how to set up a local server and then configure your `config.json` like this:
 
 ```json
 {
-  "name": "google",
-  "params": { "serperApiKey": "<your serper.dev api key>" }
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": ["mcp-server-sqlite", "--db-path", "/Users/NAME/test.db"]
+        }
+      }
+    ]
+  }
 }
 ```
+
+You'll then be able to type "@" and see "MCP" in the context providers dropdown.
+
+### Prompt Files
+
+See [Prompt Files](/customize/deep-dives/prompt-files). Prompt files are not added directly to the config file; prompt files are parsed and injected into the config automatically, to be used like other context providers.
+
+### `@Issue`
+
+Reference the conversation in a GitHub issue.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "issue",
+      "params": {
+        "repos": [
+          {
+            "owner": "continuedev",
+            "repo": "continue"
+          }
+        ],
+        "githubToken": "ghp_xxx"
+      }
+    }
+  ]
+}
+```
+
+Make sure to include your own [GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token) to avoid being rate-limited.
+
+### `@Database`
+
+Reference table schemas from Sqlite, Postgres, MSSQL, and MySQL databases.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "database",
+      "params": {
+        "connections": [
+          {
+            "name": "examplePostgres",
+            "connection_type": "postgres",
+            "connection": {
+              "user": "username",
+              "host": "localhost",
+              "database": "exampleDB",
+              "password": "yourPassword",
+              "port": 5432
+            }
+          },
+          {
+            "name": "exampleMssql",
+            "connection_type": "mssql",
+            "connection": {
+              "user": "username",
+              "server": "localhost",
+              "database": "exampleDB",
+              "password": "yourPassword"
+            }
+          },
+          {
+            "name": "exampleSqlite",
+            "connection_type": "sqlite",
+            "connection": {
+              "filename": "/path/to/your/sqlite/database.db"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+Each connection should include a unique name, the `connection_type`, and the necessary connection parameters specific to each database type.
+
+Available connection types:
+
+- `postgres`
+- `mysql`
+- `sqlite`
+
+### `@Postgres`
+
+Reference the schema of a table, and some sample rows
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "postgres",
+      "params": {
+        "host": "localhost",
+        "port": 5436,
+        "user": "myuser",
+        "password": "catsarecool",
+        "database": "animals",
+        "schema": "public",
+        "sampleRows": 3
+      }
+    }
+  ]
+}
+```
+
+The only required settings are those for creating the database connection: `host`, `port`, `user`, `password`, and `database`.
+
+By default, the `schema` filter is set to `public`, and the `sampleRows` is set to 3. You may unset the schema if you want to include tables from all schemas.
+
+[Here is a short demo.](https://github.com/continuedev/continue/pull/859)
+
+### `@Google`
+
+Reference the results of a Google search.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "google",
+      "params": {
+        "serperApiKey": "<your serper.dev api key>"
+      }
+    }
+  ]
+}
+```
+
+For example, type "@Google python tutorial" if you want to search and discuss ways of learning Python.
 
 Note: You can get an API key for free at [serper.dev](https://serper.dev).
 
-### GitHub Issues
+### `@Gitlab Merge Request`
 
-Type '@issue' to reference the conversation in a GitHub issue. Make sure to include your own [GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token) to avoid being rate-limited:
+Reference an open MR for this branch on GitLab.
 
-```json
+```json title="config.json"
 {
-  "name": "issue",
-  "params": {
-    "repos": [
-      {
-        "owner": "continuedev",
-        "repo": "continue"
+  "contextProviders": [
+    {
+      "name": "gitlab-mr",
+      "params": {
+        "token": "..."
       }
-    ],
-    "githubToken": "ghp_xxx"
-  }
+    }
+  ]
 }
 ```
 
-### GitLab Merge Request
-
-Type `@gitlab-mr` to reference an open MR for this branch on GitLab.
-
-#### Configuration
-
-You will need to create a [personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) with the `read_api` scope. then add the following to your configuration:
-
-```json
-{
-  "name": "gitlab-mr",
-  "params": {
-    "token": "..."
-  }
-}
-```
+You will need to create a [personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) with the `read_api` scope.
 
 #### Using Self-Hosted GitLab
 
 You can specify the domain to communicate with by setting the `domain` parameter in your configurtion. By default this is set to `gitlab.com`.
 
-```json
+```json title="config.json"
 {
-  "name": "gitlab-mr",
-  "params": {
-    "token": "...",
-    "domain": "gitlab.example.com"
-  }
+  "contextProviders": [
+    {
+      "name": "gitlab-mr",
+      "params": {
+        "token": "...",
+        "domain": "gitlab.example.com"
+      }
+    }
+  ]
 }
 ```
 
@@ -171,19 +494,25 @@ You can specify the domain to communicate with by setting the `domain` parameter
 
 If you select some code to be edited, you can have the context provider filter out comments for other files. To enable this feature, set `filterComments` to `true`.
 
-### Jira Issues
+### `@Jira`
 
-Type '@jira' to reference the conversation in a Jira issue. Make sure to include your own [Atlassian API Token](https://id.atlassian.com/manage-profile/security/api-tokens), or use your `email` and `token`, with token set to your password for basic authentication. If you use your own Atlassian API Token, don't configure your email.
+Reference the conversation in a Jira issue.
 
-```json
+```json title="config.json"
 {
-  "name": "jira",
-  "params": {
-    "domain": "company.atlassian.net",
-    "token ": "ATATT..."
-  }
+  "contextProviders": [
+    {
+      "name": "jira",
+      "params": {
+        "domain": "company.atlassian.net",
+        "token": "ATATT..."
+      }
+    }
+  ]
 }
 ```
+
+Make sure to include your own [Atlassian API Token](https://id.atlassian.com/manage-profile/security/api-tokens), or use your `email` and `token`, with token set to your password for basic authentication. If you use your own Atlassian API Token, don't configure your email.
 
 #### Jira Datacenter Support
 
@@ -191,11 +520,17 @@ This context provider supports both Jira API version 2 and 3. It will use versio
 that's what the cloud version uses, but if you have the datacenter version of Jira, you'll need
 to set the API Version to 2 using the `apiVersion` property.
 
-```json
-  "params": {
-    "apiVersion": "2",
-    ...
-  }
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "jira",
+      "params": {
+        "apiVersion": "2"
+      }
+    }
+  ]
+}
 ```
 
 #### Issue Query
@@ -208,117 +543,134 @@ assignee = currentUser() AND resolution = Unresolved order by updated DESC
 
 You can override this query by setting the `issueQuery` parameter.
 
- <!-- 
- Note: We are currently omitting the following providers due to bugs.
- See this issue for details: https://github.com/continuedev/continue/issues/1365 
- -->
+### `@Discord`
 
-<!-- ### Code Outline
+Reference the messages in a Discord channel.
 
-Type '@outline' to reference the outline of all currently open files. The outline of a files consists of only the function and class definitions in the file. Supported file extensions are '.js', '.mjs', '.go', '.c', '.cc', '.cs', '.cpp', '.el', '.ex', '.elm', '.java', '.ml', '.php', '.ql', '.rb', '.rs', '.ts'
-
-```json
-{ "name": "outline" }
-```
-
-### Code Highlights
-
-Type '@highlights' to reference the 'highlights' from all currently open files. The highlights are computed using Paul Gauthier's so-called ['repomap'](https://aider.chat/docs/repomap.html) technique in [Aider Chat](https://github.com/paul-gauthier/aider). Supported file extensions are the same as for '@Outline' (behind the scenes, we use the corresponding tree-sitter grammars for language parsing).
-
-```json
-{ "name": "highlights" }
-``` -->
-
-### PostgreSQL
-
-Type `@postgres` to reference the schema of a table, and some sample rows. A dropdown will appear, allowing you to select a specific table, or all tables.
-
-The only required settings are those for creating the database connection: `host`, `port`, `user`, `password`, and `database`.
-
-By default, the `schema` filter is set to `public`, and the `sampleRows` is set to 3. You may unset the schema if you want to include tables from all schemas.
-
-[Here is a short demo.](https://github.com/continuedev/continue/pull/859)
-
-```json
+```json title="config.json"
 {
-  "name": "postgres",
-  "params": {
-    "host": "localhost",
-    "port": 5436,
-    "user": "myuser",
-    "password": "catsarecool",
-    "database": "animals",
-    "schema": "public",
-    "sampleRows": 3
-  }
-}
-```
-
-### Database Tables
-
-Type `@database` to reference table schemas you can use the drop-down or start typeing table names based off of your configuration. Configuration supports multiple databases, allowing you to specify various connection details for PostgreSQL, MySQL, SQLite. Each connection should include a unique name, the connection_type (e.g., postgres, sqlite), and the necessary connection parameters specific to each database type.
-
-```json
-{
-  "name": "database",
-  "params": {
-    "connections": [
-      {
-        "name": "examplePostgres",
-        "connection_type": "postgres",
-        "connection": {
-          "user": "username",
-          "host": "localhost",
-          "database": "exampleDB",
-          "password": "yourPassword",
-          "port": 5432
-        }
-      },
-      {
-        "name": "exampleSqlite",
-        "connection_type": "sqlite",
-        "connection": {
-          "filename": "/path/to/your/sqlite/database.db"
-        }
+  "contextProviders": [
+    {
+      "name": "discord",
+      "params": {
+        "discordKey": "bot token",
+        "guildId": "1234567890",
+        "channels": [
+          {
+            "id": "123456",
+            "name": "example-channel"
+          },
+          {
+            "id": "678901",
+            "name": "example-channel-2"
+          }
+        ]
       }
-    ]
-  }
+    }
+  ]
 }
 ```
 
-### Debugger: Local Variables
+Make sure to include your own [Bot Token](https://discord.com/developers/applications), and join it to your related server . If you want more granular control over which channels are searched, you can specify a list of channel IDs to search in. If you don't want to specify any channels, just include the guild id(Server ID) and all channels will be included. The provider only reads text channels.
 
-Type `@locals` to reference the contents of the local variables with top n level (defaulting to 3) of call stack for that thread. A dropdown will appear, allowing you to select a specific thread to see the local variables in that thread.
+### `@HTTP`
 
-```json
+The HttpContextProvider makes a POST request to the url passed in the configuration. The server must return 200 OK with a ContextItem object or an array of ContextItems.
+
+```json title="config.json"
 {
-  "name": "locals",
-  "params": {
-    "stackDepth": 3
-  }
+  "contextProviders": [
+    {
+      "name": "http",
+      "params": {
+        "url": "https://api.example.com/v1/users"
+      }
+    }
+  ]
 }
 ```
 
-### Repository map
+The receiving URL should expect to receive the following parameters:
 
-Provides an overview of all files and the call signatures of top-level classes, functions, and methods. This helps the model better understand how a particular piece of code relates to the rest of the codebase.
-
-This context provider is inpsired by [Aider's repository map](https://aider.chat/2023/10/22/repomap.html).
-
-```json
+```js title="POST parameters"
 {
-  "name": "repo-map"
+  query: string,
+  fullInput: string
 }
 ```
 
-### Operating System
+The response 200 OK should be a JSON object with the following structure:
 
-Type `@os` to reference the architecture and platform of your current operating system.
+```json title="Response"
+[
+  {
+    "name": "",
+    "description": "",
+    "content": ""
+  }
+]
 
-```json
-{ "name": "os" }
+// OR
+{
+  "name": "",
+  "description": "",
+  "content": ""
+}
+```
+
+### `@Commits`
+
+Reference specific git commit metadata and diff or all of the recent commits.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "commit",
+      "params": {
+        "Depth": 50,
+        "LastXCommitsDepth": 10
+      }
+    }
+  ]
+}
+```
+
+The depth is how many commits will be loaded into the submenu, defaults to 50.
+The LastXCommitsDepth is how many recent commits will be included, defaults to 10.
+
+### `@Clipboard`
+
+Reference recent clipboard items
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "clipboard"
+    }
+  ]
+}
+```
+
+### `@Greptile`
+
+Query a [Greptile](https://www.greptile.com/) index of the current repo/branch.
+
+```json title="config.json"
+{
+  "contextProviders": [
+    {
+      "name": "greptile",
+      "params": {
+        "GreptileToken": "...",
+        "GithubToken": "..."
+      }
+    }
+  ]
+}
 ```
 
 ### Requesting Context Providers
 
-Not seeing what you want? Create an issue [here](https://github.com/continuedev/continue/issues/new?assignees=TyDunn&labels=enhancement&projects=&template=feature-request-%F0%9F%92%AA.md&title=) to request a new ContextProvider.
+Not seeing what you want? Create an issue [here](https://github.com/continuedev/continue/issues/new?assignees=TyDunn&labels=enhancement&projects=&template=feature-request-%F0%9F%92%AA.md&title=) to request a new Context Provider.

@@ -1,10 +1,10 @@
 ---
 title: Using Llama 3.1 with Continue
 description: How to use Llama 3.1 with Continue
-keywords: [llama, meta, togetherai, ollama, replicate]
+keywords: [llama, meta, togetherai, novita, ollama, replicate]
 ---
 
-Continue makes it easy to code with the latest open-source models, including the entire Llama 3.1 family of models.
+Continue makes it easy to code with the latest open-source models, including the entire Llama 3.1 family of models. Llama 3.2 models are also supported but not recommended for chat, because they are specifically designed to be small or multi-modal.
 
 If you haven't already installed Continue, you can do that [here for VS Code](https://marketplace.visualstudio.com/items?itemName=Continue.continue) or [here for JetBrains](https://plugins.jetbrains.com/plugin/22707-continue). For more general information on customizing Continue, read [our customization docs](../overview.md).
 
@@ -32,6 +32,12 @@ Ollama is the fastest way to get up and running with local language models. We r
 
 ## Groq
 
+:::info
+
+Check if your chosen model is still supported by referring to the [model documentation](https://console.groq.com/docs/models). If a model has been deprecated, you may encounter a 404 error when attempting to use it.
+
+:::
+
 Groq provides the fastest available inference for open-source language models, including the entire Llama 3.1 family.
 
 1. Obtain an API key [here](https://console.groq.com/keys)
@@ -41,9 +47,9 @@ Groq provides the fastest available inference for open-source language models, i
 {
   "models": [
     {
-      "title": "Llama 3.1 405b",
+      "title": "Llama 3.3 70b Versatile",
       "provider": "groq",
-      "model": "llama3.1-405b",
+      "model": "llama-3.3-70b-versatile",
       "apiKey": "<API_KEY>"
     }
   ]
@@ -106,6 +112,27 @@ SambaNova Cloud provides world record Llama3.1 70B/405B serving.
       "title": "SambaNova Llama 3.1 405B",
       "provider": "sambanova",
       "model": "llama3.1-405b",
+      "apiKey": "YOUR_API_KEY"
+    }
+  ]
+}
+```
+
+## Cerebras Inference
+
+Cerebras Inference uses specialized silicon to provides fast inference for the Llama3.1 8B/70B.
+
+1. Create an account in the portal [here](https://cloud.cerebras.ai/).
+2. Create and copy the API key for use in Continue.
+3. Update your Continue config file:
+
+```json title="config.json"
+{
+  "models": [
+    {
+      "title": "Cerebras Llama 3.1 70B",
+      "provider": "cerebras",
+      "model": "llama3.1-70b",
       "apiKey": "YOUR_API_KEY"
     }
   ]

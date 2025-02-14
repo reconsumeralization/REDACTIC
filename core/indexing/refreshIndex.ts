@@ -1,14 +1,16 @@
 import crypto from "node:crypto";
 import * as fs from "node:fs";
+
 import plimit from "p-limit";
 import { open, type Database } from "sqlite";
 import sqlite3 from "sqlite3";
-import { IndexTag, IndexingProgressUpdate } from "../index.js";
+
+import { FileStatsMap, IndexTag, IndexingProgressUpdate } from "../index.js";
 import { getIndexSqlitePath } from "../util/paths.js";
+
 import {
   CodebaseIndex,
   IndexResultType,
-  LastModifiedMap,
   MarkCompleteCallback,
   PathAndCacheKey,
   RefreshIndexResults,
@@ -124,9 +126,12 @@ enum AddRemoveResultType {
   Compute = "compute",
 }
 
+// Don't attempt to index anything over 5MB
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+
 async function getAddRemoveForTag(
   tag: IndexTag,
-  currentFiles: LastModifiedMap,
+  currentFiles: FileStatsMap,
   readFile: (path: string) => Promise<string>,
 ): Promise<
   [
@@ -138,6 +143,12 @@ async function getAddRemoveForTag(
 > {
   const newLastUpdatedTimestamp = Date.now();
   const files = { ...currentFiles };
+
+  for (const path in files) {
+    if (files[path].size > MAX_FILE_SIZE_BYTES) {
+      delete files[path];
+    }
+  }
 
   const saved = await getSavedItemsForTag(tag);
 
@@ -154,7 +165,7 @@ async function getAddRemoveForTag(
       remove.push(pathAndCacheKey);
     } else {
       // Exists in old and new, so determine whether it was updated
-      if (lastUpdated < files[item.path]) {
+      if (lastUpdated < files[item.path].lastModified) {
         // Change was made after last update
         const newHash = calculateHash(await readFile(pathAndCacheKey.path));
         if (pathAndCacheKey.cacheKey !== newHash) {
@@ -342,7 +353,7 @@ function mapIndexResultTypeToAddRemoveResultType(
 
 export async function getComputeDeleteAddRemove(
   tag: IndexTag,
-  currentFiles: LastModifiedMap,
+  currentFiles: FileStatsMap,
   readFile: (path: string) => Promise<string>,
   repoName: string | undefined,
 ): Promise<[RefreshIndexResults, PathAndCacheKey[], MarkCompleteCallback]> {
@@ -416,11 +427,9 @@ export async function getComputeDeleteAddRemove(
 
 export class GlobalCacheCodeBaseIndex implements CodebaseIndex {
   relativeExpectedTime: number = 1;
-  private db: DatabaseConnection;
 
-  constructor(db: DatabaseConnection) {
-    this.db = db;
-  }
+  constructor(private db: DatabaseConnection) {}
+
   artifactId = "globalCache";
 
   static async create(): Promise<GlobalCacheCodeBaseIndex> {
@@ -470,4 +479,25 @@ export class GlobalCacheCodeBaseIndex implements CodebaseIndex {
       tag.artifactId,
     );
   }
+}
+
+const SQLITE_MAX_LIKE_PATTERN_LENGTH = 50000;
+
+export function truncateToLastNBytes(input: string, maxBytes: number): string {
+  let bytes = 0;
+  let startIndex = 0;
+
+  for (let i = input.length - 1; i >= 0; i--) {
+    bytes += new TextEncoder().encode(input[i]).length;
+    if (bytes > maxBytes) {
+      startIndex = i + 1;
+      break;
+    }
+  }
+
+  return input.substring(startIndex, input.length);
+}
+
+export function truncateSqliteLikePattern(input: string) {
+  return truncateToLastNBytes(input, SQLITE_MAX_LIKE_PATTERN_LENGTH);
 }

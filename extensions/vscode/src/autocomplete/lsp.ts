@@ -1,16 +1,20 @@
-import type { IDE, RangeInFile } from "core";
-import { getAst, getTreePathAtCursor } from "core/autocomplete/ast";
-import { GetLspDefinitionsFunction } from "core/autocomplete/completionProvider";
-import { AutocompleteLanguageInfo } from "core/autocomplete/languages";
-import { AutocompleteSnippet } from "core/autocomplete/ranking";
-import { RangeInFileWithContents } from "core/commands/util";
+import { AutocompleteLanguageInfo } from "core/autocomplete/constants/AutocompleteLanguageInfo";
+import { getAst, getTreePathAtCursor } from "core/autocomplete/util/ast";
 import {
   FUNCTION_BLOCK_NODE_TYPES,
   FUNCTION_DECLARATION_NODE_TYPEs,
 } from "core/indexing/chunk/code";
 import { intersection } from "core/util/ranges";
 import * as vscode from "vscode";
+
+import type { IDE, Range, RangeInFile, RangeInFileWithContents } from "core";
 import type Parser from "web-tree-sitter";
+import { GetLspDefinitionsFunction } from "core/autocomplete/types";
+import {
+  AutocompleteCodeSnippet,
+  AutocompleteSnippetType,
+} from "core/autocomplete/snippets/types";
+import * as URI from "uri-js";
 
 type GotoProviderName =
   | "vscode.executeDefinitionProvider"
@@ -20,13 +24,13 @@ type GotoProviderName =
   | "vscode.executeReferenceProvider";
 
 interface GotoInput {
-  uri: string;
+  uri: vscode.Uri;
   line: number;
   character: number;
   name: GotoProviderName;
 }
 function gotoInputKey(input: GotoInput) {
-  return `${input.name}${input.uri.toString}${input.line}${input.character}`;
+  return `${input.name}${input.uri.toString()}${input.line}${input.character}`;
 }
 
 const MAX_CACHE_SIZE = 50;
@@ -44,14 +48,14 @@ export async function executeGotoProvider(
   try {
     const definitions = (await vscode.commands.executeCommand(
       input.name,
-      vscode.Uri.parse(input.uri),
+      input.uri,
       new vscode.Position(input.line, input.character),
     )) as any;
 
     const results = definitions
       .filter((d: any) => (d.targetUri || d.uri) && (d.targetRange || d.range))
       .map((d: any) => ({
-        filepath: (d.targetUri || d.uri).fsPath,
+        filepath: (d.targetUri || d.uri).toString(),
         range: d.targetRange || d.range,
       }));
 
@@ -59,13 +63,15 @@ export async function executeGotoProvider(
     if (gotoCache.size >= MAX_CACHE_SIZE) {
       // Remove the oldest item from the cache
       const oldestKey = gotoCache.keys().next().value;
-      gotoCache.delete(oldestKey);
+      if (oldestKey) {
+        gotoCache.delete(oldestKey);
+      }
     }
     gotoCache.set(cacheKey, results);
 
     return results;
   } catch (e) {
-    console.warn(`Error executing ${name}:`, e);
+    console.warn(`Error executing ${input.name}:`, e);
     return [];
   }
 }
@@ -131,7 +137,9 @@ async function crawlTypes(
 
   // Parse AST
   const ast = await getAst(rif.filepath, contents);
-  if (!ast) return results;
+  if (!ast) {
+    return results;
+  }
   const astLineCount = ast.rootNode.text.split("\n").length;
 
   // Find type identifiers
@@ -146,7 +154,7 @@ async function crawlTypes(
   const definitions = await Promise.all(
     identifierNodes.map(async (node) => {
       const [typeDef] = await executeGotoProvider({
-        uri: rif.filepath,
+        uri: vscode.Uri.parse(rif.filepath),
         // TODO: tree-sitter is zero-indexed, but there seems to be an off-by-one
         // error at least with the .ts parser sometimes
         line:
@@ -174,7 +182,7 @@ async function crawlTypes(
       !definition ||
       results.some(
         (result) =>
-          result.filepath === definition.filepath &&
+          URI.equal(result.filepath, definition.filepath) &&
           intersection(result.range, definition.range) !== null,
       )
     ) {
@@ -194,7 +202,7 @@ async function crawlTypes(
 }
 
 export async function getDefinitionsForNode(
-  uri: string,
+  uri: vscode.Uri,
   node: Parser.SyntaxNode,
   ide: IDE,
   lang: AutocompleteLanguageInfo,
@@ -301,6 +309,19 @@ export async function getDefinitionsForNode(
   }
   return await Promise.all(
     ranges.map(async (rif) => {
+      // Convert the VS Code Range type to ours
+      const range: Range = {
+        start: {
+          line: rif.range.start.line,
+          character: rif.range.start.character,
+        },
+        end: {
+          line: rif.range.end.line,
+          character: rif.range.end.character,
+        },
+      };
+      rif.range = range;
+
       if (!isRifWithContents(rif)) {
         return {
           ...rif,
@@ -324,18 +345,22 @@ export const getDefinitionsFromLsp: GetLspDefinitionsFunction = async (
   cursorIndex: number,
   ide: IDE,
   lang: AutocompleteLanguageInfo,
-): Promise<AutocompleteSnippet[]> => {
+): Promise<AutocompleteCodeSnippet[]> => {
   try {
     const ast = await getAst(filepath, contents);
-    if (!ast) return [];
+    if (!ast) {
+      return [];
+    }
 
     const treePath = await getTreePathAtCursor(ast, cursorIndex);
-    if (!treePath) return [];
+    if (!treePath) {
+      return [];
+    }
 
     const results: RangeInFileWithContents[] = [];
     for (const node of treePath.reverse()) {
       const definitions = await getDefinitionsForNode(
-        filepath,
+        vscode.Uri.parse(filepath),
         node,
         ide,
         lang,
@@ -344,8 +369,9 @@ export const getDefinitionsFromLsp: GetLspDefinitionsFunction = async (
     }
 
     return results.map((result) => ({
-      ...result,
-      score: 0.8,
+      filepath: result.filepath,
+      content: result.contents,
+      type: AutocompleteSnippetType.Code,
     }));
   } catch (e) {
     console.warn("Error getting definitions from LSP: ", e);

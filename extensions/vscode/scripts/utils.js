@@ -11,10 +11,19 @@ const {
 const continueDir = path.join(__dirname, "..", "..", "..");
 
 function copyConfigSchema() {
-  fs.copyFileSync(
-    "config_schema.json",
-    path.join("..", "..", "docs", "static", "schemas", "config.json"),
-  );
+  // Modify and copy for .continuerc.json
+  const schema = JSON.parse(fs.readFileSync("config_schema.json", "utf8"));
+  schema.$defs.SerializedContinueConfig.properties.mergeBehavior = {
+    type: "string",
+    enum: ["merge", "overwrite"],
+    default: "merge",
+    title: "Merge behavior",
+    markdownDescription: "If set to 'merge', .continuerc.json will be applied on top of config.json (arrays and objects are merged). If set to 'overwrite', then every top-level property of .continuerc.json will overwrite that property from config.json.",
+    "x-intellij-html-description": "<p>If set to <code>merge</code>, <code>.continuerc.json</code> will be applied on top of <code>config.json</code> (arrays and objects are merged). If set to <code>overwrite</code>, then every top-level property of <code>.continuerc.json</code> will overwrite that property from <code>config.json</code>.</p>"
+  };
+  fs.writeFileSync("continue_rc_schema.json", JSON.stringify(schema, null, 2));
+
+  // Copy config schemas to intellij
   fs.copyFileSync(
     "config_schema.json",
     path.join(
@@ -26,17 +35,17 @@ function copyConfigSchema() {
       "config_schema.json",
     ),
   );
-  // Modify and copy for .continuerc.json
-  const schema = JSON.parse(fs.readFileSync("config_schema.json", "utf8"));
-  schema.definitions.SerializedContinueConfig.properties.mergeBehavior = {
-    type: "string",
-    enum: ["merge", "overwrite"],
-    default: "merge",
-    title: "Merge behavior",
-    markdownDescription:
-      "If set to 'merge', .continuerc.json will be applied on top of config.json (arrays and objects are merged). If set to 'overwrite', then every top-level property of .continuerc.json will overwrite that property from config.json.",
-  };
-  fs.writeFileSync("continue_rc_schema.json", JSON.stringify(schema, null, 2));
+  fs.copyFileSync(
+    "continue_rc_schema.json",
+    path.join(
+      "..",
+      "intellij",
+      "src",
+      "main",
+      "resources",
+      "continue_rc_schema.json",
+    ),
+  );
 }
 
 function copyTokenizers() {
@@ -496,6 +505,26 @@ async function installNodeModuleInTempDirAndCopyToCurrent(packageName, toCopy) {
   }
 }
 
+async function copyScripts() {
+  process.chdir(path.join(continueDir, "extensions", "vscode"));
+  console.log("[info] Copying scripts from core");
+  await new Promise((resolve, reject) => {
+    ncp(
+      path.join(__dirname, "../../../core/scripts"),
+      path.join(__dirname, "../out"),
+      { dereference: true },
+      (error) => {
+        if (error) {
+          console.warn("[error] Error copying script files", error);
+          reject(error);
+        } else {
+          resolve();
+        }
+      },
+    );
+  });
+}
+
 module.exports = {
   copyConfigSchema,
   installNodeModules,
@@ -510,4 +539,5 @@ module.exports = {
   downloadSqliteBinary,
   downloadRipgrepBinary,
   copyTokenizers,
+  copyScripts
 };

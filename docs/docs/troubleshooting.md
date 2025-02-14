@@ -24,7 +24,7 @@ To solve many problems, the first step is reading the logs to find the relevant 
 In order to view debug logs, which contain extra information, click the dropdown at the top that says "Default levels" and select "Verbose".
 :::
 
-1. `cmd+shift+p` (MacOS) / `ctrl+shift+p` (Windows)
+1. <kbd>cmd</kbd> + <kbd>shift</kbd> + <kbd>P</kbd> for MacOS or <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>P</kbd> for Windows
 2. Search for and then select "Developer: Toggle Developer Tools"
 3. This will open the [Chrome DevTools window](https://developer.chrome.com/docs/devtools/)
 4. Select the `Console` tab
@@ -40,7 +40,9 @@ If you're getting a response from the LLM that doesn't seem to make sense, you c
 
 ### JetBrains
 
-Open `~/.continue/logs/core.log`. The most recent logs are found at the bottom of the file.
+Open `~/.continue/logs/core.log` to view the logs for the Continue plugin. The most recent logs are found at the bottom of the file.
+
+Some JetBrains-related logs may also be found by clicking "Help" > "Show Log in Explorer/Finder".
 
 ## Download the latest pre-release
 
@@ -54,7 +56,7 @@ We are constantly making fixes and improvements to Continue, but the latest chan
 
 On JetBrains, the "pre-release" happens through their Early Access Program (EAP) channel. To download the latest EAP version, enable the EAP channel:
 
-1. Open JetBrains settings (`cmd/ctrl + ,`) and go to "Plugins"
+1. Open JetBrains settings (<kbd>cmd/ctrl</kbd> + <kbd>,</kbd>) and go to "Plugins"
 2. Click the gear icon at the top
 3. Select "Manage Plugin Repositories..."
 4. Add "[https://plugins.jetbrains.com/plugins/eap/list](https://plugins.jetbrains.com/plugins/eap/list)" to the list
@@ -102,7 +104,7 @@ You may also set `requestOptions.caBundlePath` to an array of paths to multiple 
 
 #### VS Code Proxy Settings
 
-If you are using VS Code and require requests to be made through a proxy, you are likely already set up through VS Code's [Proxy Server Support](https://code.visualstudio.com/docs/setup/network#_proxy-server-support). To double-check that this is enabled, use cmd/ctrl+, to open settings and search for "Proxy Support". Unless it is set to "off", then VS Code is responsible for making the request to the proxy.
+If you are using VS Code and require requests to be made through a proxy, you are likely already set up through VS Code's [Proxy Server Support](https://code.visualstudio.com/docs/setup/network#_proxy-server-support). To double-check that this is enabled, use <kbd>cmd/ctrl</kbd> + <kbd>,</kbd> to open settings and search for "Proxy Support". Unless it is set to "off", then VS Code is responsible for making the request to the proxy.
 
 #### code-server
 
@@ -116,11 +118,21 @@ By default the Continue window is on the left side of VS Code, but it can be dra
 
 If you have entered a valid API key and model, but are still getting a 404 error from OpenAI, this may be because you need to add credits to your billing account. You can do so from the [billing console](https://platform.openai.com/settings/organization/billing/overview). If you just want to check that this is in fact the cause of the error, you can try adding $1 to your account and checking whether the error persists.
 
+### I'm getting a 404 error from OpenRouter
+
+If you have entered a valid API key and model, but are still getting a 404 error from OpenRouter, this may be because models that do not support function calling will return an error to Continue when a request is sent.
+Example error:
+`HTTP 404 Not Found from https://openrouter.ai/api/v1/chat/completions`
+
 ### Indexing issues
 
 If you are having persistent errors with indexing, our recommendation is to rebuild your index from scratch. Note that for large codebases this may take some time.
 
 This can be accomplished using the following command: `Continue: Rebuild codebase index`.
+
+### Android Studio - "Nothing to show" in Chat
+
+This can be fixed by selecting `Actions > Choose Boot runtime for the IDE` then selecting the latest version, and then restarting Android Studio. [See this thread](https://github.com/continuedev/continue/issues/596#issuecomment-1789327178) for details.
 
 ## Still having trouble?
 

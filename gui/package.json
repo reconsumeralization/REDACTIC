@@ -63,7 +63,7 @@
     "react-remark": "^2.1.0",
     "react-router-dom": "^6.14.2",
     "react-switch": "^7.0.0",
-    "react-syntax-highlighter": "^15.5.0",
+    "react-syntax-highlighter": "^16.0.0",
     "react-tooltip": "^5.18.0",
     "redux-logger": "^3.0.6",
     "redux-persist": "^6.0.0",

@@ -49,9 +49,10 @@ pytest==6.2.5
 loguru==0.5.3
 
 # Asynchronous Programming
-aiohttp==3.7.4
+aiohttp==3.13.3
 
 # Others
 jupyter==1.0.0
 gunicorn==20.1.0
 psycopg2==2.9.1
+urllib3>=2.6.3 # not directly required, pinned by Snyk to avoid a vulnerability
